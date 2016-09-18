@@ -11,8 +11,8 @@ function HomeMaticGenericChannel(log,platform, id ,name, type ,adress,special, c
   this.state  	= [];
   this.eventupdate = false;
   this.special  = special;
-  this.currentStateCharacteristic = [];
-  this.datapointMappings = [];
+  this.currentStateCharacteristic = {};
+  this.datapointMappings = {};
   this.timer = [];
   this.services = [];
   this.usecache = true;
