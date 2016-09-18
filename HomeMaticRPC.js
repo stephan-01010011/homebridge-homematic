@@ -3,6 +3,7 @@
 var binrpc = require("homematic-xmlrpc");
 var request = require("request");
 var debug = require('debug')('HomeMaticRPC');
+var HomeMaticRegaRequest = require("./HomeMaticRegaRequest.js").HomeMaticRegaRequest;
 
 var HomeMaticRPC = function (log, ccuip,port,system,platform) {
   
@@ -57,15 +58,37 @@ HomeMaticRPC.prototype.init = function() {
               var channel = that.interface + params[1];
               var datapoint = params[2];
               var value = params[3];
-          	  debug("RPC event for %s %s with value %s",channel,datapoint,value);
-			 
-              that.platform.foundAccessories.map(function(accessory) {
-                if ((accessory.adress == channel) || ((accessory.cadress != undefined) && (accessory.cadress == channel))) {
-                  accessory.event(datapoint, value);
+
+              if(that.platform.pollingTriggerCh != undefined && channel === that.platform.pollingTriggerCh.address ){
+                debug("RPC polling event for %s received - start variable update!", channel);
+
+                for(var i = 0; i < that.platform.variables.length; i++){
+                  let variable = that.platform.variables[i];
+                  debug("Updating <%s>", variable);
+
+                  that.platform.foundAccessories.map(function (accessory) {
+                    if ((accessory.name == variable) && (accessory.type === "VARIABLE")) {
+                      debug("Accessory of type VARIABLE found: %s", accessory.name);
+
+                      var rega = new HomeMaticRegaRequest(that.log, that.ccuip);
+                      rega.getVariable(variable, function (data) {
+                        if (data !== undefined) {
+                            debug("Variable data: %s", data);
+                            accessory.event("STATE", data);
+                        }
+                      });
+                    }
+                  });
                 }
-                
-                                
-              });
+              }else {
+                debug("RPC event for %s %s with value %s", channel, datapoint, value);
+
+                that.platform.foundAccessories.map(function (accessory) {
+                  if ((accessory.adress == channel) || ((accessory.cadress != undefined) && (accessory.cadress == channel))) {
+                    accessory.event(datapoint, value);
+                  }
+                });
+              }
             }
           });
         } catch (err) {}
@@ -138,7 +161,7 @@ HomeMaticRPC.prototype.init = function() {
     this.client.methodCall("init", ["http://" + this.localIP + ":" + this.listeningPort, "homebridge"], function(error, value) {
       debug("CCU Response ...%s %s",JSON.stringify(value) , error);
     });
-  },
+  }
 
 
 HomeMaticRPC.prototype.stop = function() {

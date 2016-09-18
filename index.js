@@ -158,13 +158,15 @@ function HomeMaticPlatform(log, config) {
   this.programs = config["programs"];
   this.subsection = config["subsection"];
   this.localCache = config["lcache"];
-  
+  this.pollingTrigger = config["pollingtrigger"];
+
   if ((this.subsection!=undefined) && (this.subsection=="")) {
     this.log("there is no value for the key subsection in config.json. There will be no devices fetched from your ccu.");
   }
   
   this.sendQueue = [];
   this.timer = 0;
+  this.pollingTriggerCh = undefined;
 
   this.foundAccessories = [];
   this.adressesToQuery = [];
@@ -335,6 +337,11 @@ HomeMaticPlatform.prototype.accessories = function(callback) {
                   var accessory = new HomeMaticGenericChannel(that.log, that, ch.id, ch.name, ch.type, ch.address, special ,cfg, Service, Characteristic);
                   if (accessory.isSupported(isSubsectionSelected)==true) {
                   	that.foundAccessories.push(accessory);
+                  }
+
+                  if (ch.name === that.pollingTrigger){
+                      that.log("Polling trigger found -> %s (%s)", ch.name, ch.address);
+                      that.pollingTriggerCh = ch;
                   }
 
               } else {
